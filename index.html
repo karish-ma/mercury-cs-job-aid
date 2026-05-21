@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mercury CS Training — Banking Model</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #F8F9FC;
+      --surface:     #FFFFFF;
+      --warm:        #F3F4F8;
+      --border:      #E5E7EB;
+      --border-lt:   #F0F1F5;
+      --text:        #111827;
+      --mid:         #374151;
+      --muted:       #9CA3AF;
+      --indigo:      #5B5BD6;
+      --indigo-dark: #4747C0;
+      --indigo-lt:   #EEEEFF;
+      --indigo-pale: #F5F5FF;
+      --lav:         #7C7CB8;
+      --lav-lt:      #EBEBF8;
+      --green:       #16A34A;
+      --green-lt:    #DCFCE7;
+      --green-pale:  #F0FDF4;
+      --red-lt:      #FEF2F2;
+      --red-border:  #FECACA;
+      --red:         #DC2626;
+      --r:           10px;
+      --serif:       'DM Serif Display', Georgia, serif;
+      --sans:        'Inter', -apple-system, sans-serif;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP BAR ──────────────────────────────────── */
+    .topbar {
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 0;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; margin-right: 18px; }
+    .logo-mark {
+      width: 26px; height: 26px;
+      background: var(--text);
+      border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-family: var(--serif);
+      font-size: 14px;
+    }
+    .logo-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+    .sep { color: var(--border); font-size: 20px; font-weight: 200; margin-right: 16px; }
+    .module-name { font-size: 13px; color: var(--mid); font-weight: 500; }
+    .step-count { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    .progress-track { height: 3px; background: var(--border-lt); flex-shrink: 0; }
+    .progress-fill  { height: 100%; background: var(--indigo); transition: width 0.4s ease; width: 0%; }
+
+    /* ── CONTENT ──────────────────────────────────── */
+    .content { flex: 1; position: relative; overflow: hidden; }
+
+    .step {
+      position: absolute; inset: 0;
+      overflow-y: auto;
+      padding: 28px 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(28px);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .step.active   { opacity: 1; transform: none; pointer-events: all; }
+    .step.exiting  { opacity: 0; transform: translateX(-28px); pointer-events: none; }
+
+    .inner { width: 100%; max-width: 660px; }
+
+    /* ── BOTTOM NAV ───────────────────────────────── */
+    .botnav {
+      height: 64px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .dots { display: flex; gap: 6px; align-items: center; }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.2s, transform 0.2s;
+    }
+    .dot.done   { background: var(--lav-lt); }
+    .dot.active { background: var(--indigo); transform: scale(1.3); }
+
+    .btn {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 20px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.05px;
+    }
+    .btn-back {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-back:hover:not(:disabled) { border-color: var(--mid); color: var(--text); }
+    .btn-back:disabled { opacity: 0.3; cursor: default; }
+    .btn-next {
+      background: var(--indigo);
+      color: #fff;
+      border: none;
+    }
+    .btn-next:hover:not(:disabled) { background: var(--indigo-dark); }
+    .btn-next:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── SHARED TYPOGRAPHY ────────────────────────── */
+    .eyebrow {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .eyebrow.green { color: var(--indigo); }
+    .big-title {
+      font-family: var(--serif);
+      font-size: 30px; font-weight: 400;
+      line-height: 1.2; letter-spacing: -0.3px;
+      margin-bottom: 12px;
+    }
+    .sub { font-size: 14px; color: var(--mid); line-height: 1.7; }
+
+    /* ── STEP 0: WELCOME ──────────────────────────── */
+    #step-0 { justify-content: center; }
+    .welcome-meta { display: flex; gap: 18px; flex-wrap: wrap; margin: 16px 0 24px; }
+    .meta-pill {
+      font-size: 12px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .meta-pill::before {
+      content: ''; width: 4px; height: 4px;
+      border-radius: 50%; background: var(--green-mid); display: block;
+    }
+    .obj-box {
+      background: var(--indigo-pale);
+      border: 1px solid #D4D4F5;
+      border-radius: var(--r);
+      padding: 18px 22px;
+    }
+    .obj-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      color: var(--indigo); margin-bottom: 6px;
+    }
+    .obj-box p { font-size: 13.5px; color: var(--mid); line-height: 1.65; }
+
+    /* ── STEP 1: FLIP CARDS ───────────────────────── */
+    .flip-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 18px 0 14px;
+    }
+    @media (max-width: 480px) { .flip-grid { grid-template-columns: 1fr; } }
+
+    .flip-card { height: 152px; perspective: 800px; cursor: pointer; }
+    .flip-inner {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.42s cubic-bezier(.4,.2,.2,1);
+    }
+    .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+
+    .flip-front, .flip-back {
+      position: absolute; inset: 0;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      padding: 18px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .flip-front {
+      background: var(--surface);
+      align-items: center; text-align: center;
+    }
+    .flip-front .f-icon  { font-size: 24px; margin-bottom: 8px; }
+    .flip-front .f-q     { font-size: 13px; font-weight: 500; color: var(--mid); line-height: 1.4; }
+    .flip-front .f-hint  { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+    .flip-back {
+      background: var(--indigo); color: #fff;
+      transform: rotateY(180deg);
+      border-color: var(--indigo);
+    }
+    .flip-back .b-label  { font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; opacity: 0.6; margin-bottom: 6px; }
+    .flip-back .b-val    { font-family: var(--serif); font-size: 16px; line-height: 1.3; margin-bottom: 6px; }
+    .flip-back .b-detail { font-size: 12px; opacity: 0.82; line-height: 1.55; }
+
+    .model-note {
+      background: var(--indigo-pale); border: 1px solid #D4D4F5;
+      border-radius: var(--r); padding: 14px 18px;
+      font-size: 13px; color: var(--mid); line-height: 1.6;
+      display: flex; gap: 10px;
+    }
+    .model-note strong { color: var(--text); font-weight: 600; }
+
+    /* ── STEPS 2–4: SCENARIOS ─────────────────────── */
+    .bubble-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+      text-transform: uppercase; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .bubble-label::after { content: ''; flex: 1; height: 1px; background: var(--border-lt); }
+
+    .bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px 14px 14px 4px;
+      padding: 14px 18px;
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 18px;
+      line-height: 1.45;
+      margin-bottom: 20px;
+    }
+
+    .drag-hint { font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 12px; }
+
+    .zones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 480px) { .zones { grid-template-columns: 1fr; } }
+
+    .zone {
+      min-height: 88px;
+      border: 2px dashed var(--border);
+      border-radius: var(--r);
+      padding: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, transform 0.15s;
+      position: relative;
+    }
+    .zone.say-z  { background: var(--green-pale); border-color: #C8DDD0; }
+    .zone.avoid-z { background: var(--red-lt);   border-color: var(--red-border); }
+    .zone.over   { border-style: solid; transform: scale(1.01); }
+    .zone.say-z.over  { border-color: var(--green); }
+    .zone.avoid-z.over { border-color: var(--red); }
+
+    .zone-lbl {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.6px; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .say-z  .zone-lbl { color: var(--green); }
+    .avoid-z .zone-lbl { color: var(--red); }
+    .zone-ph { font-size: 12px; color: var(--muted); font-style: italic; }
+    .zone-ph.hidden { display: none; }
+
+    .drag-pool { display: flex; gap: 10px; flex-wrap: wrap; }
+    @media (max-width: 480px) { .drag-pool { flex-direction: column; } }
+
+    .dcard {
+      flex: 1; min-width: 180px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      font-size: 13px; color: var(--mid); line-height: 1.55;
+      cursor: grab; user-select: none;
+      display: flex; align-items: flex-start; gap: 8px;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .dcard:hover  { border-color: var(--indigo); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .dcard.picked { border-color: var(--indigo); background: var(--indigo-pale); box-shadow: 0 0 0 2px rgba(91,91,214,0.15); }
+    .dcard.dragging { opacity: 0.4; cursor: grabbing; }
+    .drag-h { color: var(--muted); font-size: 13px; flex-shrink: 0; margin-top: 1px; line-height: 1; }
+
+    .placed {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 12.5px; color: var(--text); line-height: 1.5;
+      cursor: pointer; display: flex; gap: 8px; align-items: flex-start;
+    }
+    .placed:hover { border-color: var(--mid); }
+    .placed.ok    { border-color: var(--green);  background: var(--green-pale); cursor: default; }
+    .placed.bad   { border-color: var(--red);    background: var(--red-lt);    cursor: default; }
+
+    .sc-feedback {
+      display: none;
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: var(--r);
+      font-size: 13px; line-height: 1.65;
+    }
+    .sc-feedback.show      { display: block; }
+    .sc-feedback.show.pass { background: var(--green-pale); border: 1px solid #C8DDD0; color: var(--green); }
+    .sc-feedback.show.fail { background: var(--red-lt); border: 1px solid var(--red-border); color: var(--red); }
+
+    .btn-check {
+      margin-top: 14px;
+      background: var(--surface);
+      color: var(--mid);
+      border: 1.5px solid var(--border);
+      font-family: var(--sans); font-size: 13px; font-weight: 500;
+      padding: 8px 18px; border-radius: 7px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-check:hover:not(:disabled) { border-color: var(--indigo); color: var(--indigo); }
+    .btn-check:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── STEPS 5–7: QUIZ ──────────────────────────── */
+    .qnum { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .qtext { font-family: var(--serif); font-size: 22px; line-height: 1.35; letter-spacing: -0.2px; margin-bottom: 20px; }
+
+    .qopts { display: flex; flex-direction: column; gap: 8px; }
+    .qopt {
+      display: flex; align-items: flex-start; gap: 11px;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border); border-radius: var(--r);
+      background: var(--surface);
+      cursor: pointer; font-size: 13.5px; color: var(--mid); line-height: 1.55;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .qopt:hover:not(.done) { border-color: var(--indigo); background: var(--indigo-pale); }
+    .qopt.done  { cursor: default; }
+    .qopt.right { border-color: var(--green);   background: var(--green-pale);  color: var(--text); }
+    .qopt.wrong { border-color: var(--red);     background: var(--red-lt);      color: var(--text); }
+    .qopt.show  { border-color: var(--green);   background: var(--green-pale);  color: var(--text); }
+
+    .oletter {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--bg); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      flex-shrink: 0; margin-top: 2px; transition: all 0.15s;
+    }
+    .qopt.right .oletter { background: var(--green); color: #fff; border-color: var(--green); }
+    .qopt.wrong .oletter { background: var(--red);   color: #fff; border-color: var(--red); }
+    .qopt.show  .oletter { background: var(--green); color: #fff; border-color: var(--green); }
+
+    .q-fb {
+      display: none; margin-top: 12px;
+      padding: 12px 16px; border-radius: var(--r);
+      font-size: 13px; line-height: 1.65;
+    }
+    .q-fb.show      { display: block; }
+    .q-fb.show.pass { background: var(--green-pale); border: 1px solid #C8DDD0; color: var(--green); }
+    .q-fb.show.fail { background: var(--red-lt); border: 1px solid var(--red-border); color: var(--red); }
+
+    /* ── INLINE CONTINUE ─────────────────────────── */
+    .cont { margin-top: 24px; display: none; }
+    .cont.show { display: block; }
+
+    /* ── STEP 8: COMPLETE ─────────────────────────── */
+    #step-8 { justify-content: center; text-align: center; }
+    .done-icon { font-size: 44px; margin-bottom: 14px; }
+    .done-title { font-family: var(--serif); font-size: 30px; letter-spacing: -0.3px; margin-bottom: 10px; }
+    .done-sub { font-size: 14px; color: var(--mid); line-height: 1.7; max-width: 400px; margin: 0 auto 24px; }
+    .score-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--indigo); color: #fff;
+      padding: 12px 26px; border-radius: 100px;
+      font-size: 15px; font-weight: 600; margin-bottom: 28px;
+    }
+    .done-list { text-align: left; max-width: 380px; margin: 0 auto 28px; display: flex; flex-direction: column; gap: 8px; }
+    .done-row  { display: flex; gap: 10px; font-size: 13px; color: var(--mid); line-height: 1.5; }
+    .done-row .ck { color: var(--green); flex-shrink: 0; }
+    .btn-restart {
+      background: var(--surface); color: var(--text);
+      border: 1.5px solid var(--border);
+      font-family: var(--sans); font-size: 13px; font-weight: 500;
+      padding: 9px 22px; border-radius: 7px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-restart:hover { border-color: var(--indigo); color: var(--indigo); }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <span class="logo-name">Mercury</span>
+  </div>
+  <span class="sep">/</span>
+  <span class="module-name">CS Training — Banking Model</span>
+  <span class="step-count" id="sc">1 / 9</span>
+</div>
+<div class="progress-track"><div class="progress-fill" id="pf"></div></div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- 0: WELCOME -->
+  <div class="step active" id="step-0">
+    <div class="inner">
+      <div class="eyebrow green">Customer Support · 5 min module</div>
+      <h1 class="big-title">Explaining Mercury's banking model to customers</h1>
+      <p class="sub">Every day, customers ask about FDIC coverage, deposit safety, and what it means that Mercury isn't a bank. This module gives you the language to answer accurately — and to know when to escalate.</p>
+      <div class="welcome-meta">
+        <span class="meta-pill">5 minutes</span>
+        <span class="meta-pill">3 interactive scenarios</span>
+        <span class="meta-pill">Knowledge check</span>
+      </div>
+      <div class="obj-box">
+        <div class="obj-label">By the end of this module</div>
+        <p>You'll be able to accurately explain Mercury's banking model, correctly describe FDIC coverage for Mercury accounts, and recognize when a question requires escalation.</p>
+      </div>
+      <div style="text-align:center; margin-top:28px;">
+        <button class="btn btn-next" style="padding:12px 36px; font-size:14px; border-radius:8px;" onclick="nav(1)">Begin module →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1: FLIP CARDS -->
+  <div class="step" id="step-1">
+    <div class="inner">
+      <div class="eyebrow">Section 1 of 4</div>
+      <h2 class="big-title" style="font-size:24px;">How Mercury's banking model works</h2>
+      <p class="sub" style="margin-bottom:4px;">Tap each card to reveal the key fact.</p>
+      <div class="flip-grid">
+        <div class="flip-card" onclick="flip(this,1)">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="f-icon">🏦</div><div class="f-q">What is Mercury?</div><div class="f-hint">Tap to reveal</div></div>
+            <div class="flip-back"><div class="b-label">What Mercury is</div><div class="b-val">A fintech platform</div><div class="b-detail">Mercury provides banking services but is not itself a bank. It does not hold customer deposits.</div></div>
+          </div>
+        </div>
+        <div class="flip-card" onclick="flip(this,1)">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="f-icon">🏛️</div><div class="f-q">Who actually holds customer funds?</div><div class="f-hint">Tap to reveal</div></div>
+            <div class="flip-back"><div class="b-label">Who holds the funds</div><div class="b-val">Choice Financial Group &amp; Column N.A.</div><div class="b-detail">Both are FDIC-insured member banks. All customer deposits are held at these partner institutions.</div></div>
+          </div>
+        </div>
+        <div class="flip-card" onclick="flip(this,1)">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="f-icon">🛡️</div><div class="f-q">How does FDIC coverage work here?</div><div class="f-hint">Tap to reveal</div></div>
+            <div class="flip-back"><div class="b-label">FDIC coverage</div><div class="b-val">Up to $250,000 per depositor</div><div class="b-detail">Per institution, per ownership category. Standard FDIC limits apply through Mercury's partner banks.</div></div>
+          </div>
+        </div>
+        <div class="flip-card" onclick="flip(this,1)">
+          <div class="flip-inner">
+            <div class="flip-front"><div class="f-icon">⚡</div><div class="f-q">Why does this model exist?</div><div class="f-hint">Tap to reveal</div></div>
+            <div class="flip-back"><div class="b-label">Why this structure</div><div class="b-val">Speed, flexibility, modern UX</div><div class="b-detail">Fintech-plus-bank-partner structures let Mercury build faster products while keeping customer funds at regulated institutions.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="model-note">
+        <span>💡</span>
+        <span>The most common confusion: <strong>Mercury says it's not a bank</strong>, so customers worry their money is unprotected. Your key message: their funds are at FDIC-insured partner banks. Mercury is the interface, not the vault.</span>
+      </div>
+      <div class="cont show">
+        <button class="btn btn-next" onclick="nav(1)">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2: SCENARIO 1 -->
+  <div class="step" id="step-2">
+    <div class="inner">
+      <div class="eyebrow">Scenario 1 of 3</div>
+      <div class="bubble-label">Customer message</div>
+      <div class="bubble">"Is my money FDIC insured? I saw on your site that Mercury isn't a bank."</div>
+      <p class="drag-hint">Drag each card to the correct column — or tap a card, then tap a column.</p>
+      <div class="zones">
+        <div class="zone say-z" id="say-2" ondragover="ov(event)" ondragleave="ol(event)" ondrop="dp(event,'say','2')" onclick="zc('say','2')">
+          <div class="zone-lbl">✓ Say this</div>
+          <div class="zone-ph" id="ph-say-2">Drop here</div>
+        </div>
+        <div class="zone avoid-z" id="avoid-2" ondragover="ov(event)" ondragleave="ol(event)" ondrop="dp(event,'avoid','2')" onclick="zc('avoid','2')">
+          <div class="zone-lbl">✗ Avoid this</div>
+          <div class="zone-ph" id="ph-avoid-2">Drop here</div>
+        </div>
+      </div>
+      <div class="drag-pool" id="pool-2">
+        <div class="dcard" id="c-2a" data-text="Your funds are held at Choice Financial Group and Column N.A., both FDIC-insured member banks. Your deposits are covered up to $250,000 per institution." draggable="true" ondragstart="ds(event,'2a')" onclick="cc('2a')"><span class="drag-h">⠿</span>Your funds are held at Choice Financial Group and Column N.A., both FDIC-insured member banks. Your deposits are covered up to $250,000 per institution.</div>
+        <div class="dcard" id="c-2b" data-text="Mercury is not FDIC-insured." draggable="true" ondragstart="ds(event,'2b')" onclick="cc('2b')"><span class="drag-h">⠿</span>Mercury is not FDIC-insured.</div>
+      </div>
+      <button class="btn-check" id="chk-2" disabled onclick="check('2',{say:'2a',avoid:'2b'})">Check placement</button>
+      <div class="sc-feedback" id="fb-2"></div>
+      <div class="cont" id="cont-2"><button class="btn btn-next" onclick="nav(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- 3: SCENARIO 2 -->
+  <div class="step" id="step-3">
+    <div class="inner">
+      <div class="eyebrow">Scenario 2 of 3</div>
+      <div class="bubble-label">Customer message</div>
+      <div class="bubble">"What happens to my money if Mercury goes under?"</div>
+      <p class="drag-hint">Drag each card to the correct column — or tap a card, then tap a column.</p>
+      <div class="zones">
+        <div class="zone say-z" id="say-3" ondragover="ov(event)" ondragleave="ol(event)" ondrop="dp(event,'say','3')" onclick="zc('say','3')">
+          <div class="zone-lbl">✓ Say this</div>
+          <div class="zone-ph" id="ph-say-3">Drop here</div>
+        </div>
+        <div class="zone avoid-z" id="avoid-3" ondragover="ov(event)" ondragleave="ol(event)" ondrop="dp(event,'avoid','3')" onclick="zc('avoid','3')">
+          <div class="zone-lbl">✗ Avoid this</div>
+          <div class="zone-ph" id="ph-avoid-3">Drop here</div>
+        </div>
+      </div>
+      <div class="drag-pool" id="pool-3">
+        <div class="dcard" id="c-3a" data-text="You have nothing to worry about. Mercury guarantees your money is completely safe." draggable="true" ondragstart="ds(event,'3a')" onclick="cc('3a')"><span class="drag-h">⠿</span>You have nothing to worry about. Mercury guarantees your money is completely safe.</div>
+        <div class="dcard" id="c-3b" data-text="Mercury doesn't hold your funds — Choice Financial Group and Column N.A. do. Your deposits are insulated from Mercury's business operations." draggable="true" ondragstart="ds(event,'3b')" onclick="cc('3b')"><span class="drag-h">⠿</span>Mercury doesn't hold your funds — Choice Financial Group and Column N.A. do. Your deposits are insulated from Mercury's business operations.</div>
+      </div>
+      <button class="btn-check" id="chk-3" disabled onclick="check('3',{say:'3b',avoid:'3a'})">Check placement</button>
+      <div class="sc-feedback" id="fb-3"></div>
+      <div class="cont" id="cont-3"><button class="btn btn-next" onclick="nav(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- 4: SCENARIO 3 -->
+  <div class="step" id="step-4">
+    <div class="inner">
+      <div class="eyebrow">Scenario 3 of 3</div>
+      <div class="bubble-label">Customer message</div>
+      <div class="bubble">"I have over $250,000 in my Mercury account. Is all of it protected?"</div>
+      <p class="drag-hint">Drag each card to the correct column — or tap a card, then tap a column.</p>
+      <div class="zones">
+        <div class="zone say-z" id="say-4" ondragover="ov(event)" ondragleave="ol(event)" ondrop="dp(event,'say','4')" onclick="zc('say','4')">
+          <div class="zone-lbl">✓ Say this</div>
+          <div class="zone-ph" id="ph-say-4">Drop here</div>
+        </div>
+        <div class="zone avoid-z" id="avoid-4" ondragover="ov(event)" ondragleave="ol(event)" ondrop="dp(event,'avoid','4')" onclick="zc('avoid','4')">
+          <div class="zone-lbl">✗ Avoid this</div>
+          <div class="zone-ph" id="ph-avoid-4">Drop here</div>
+        </div>
+      </div>
+      <div class="drag-pool" id="pool-4">
+        <div class="dcard" id="c-4a" data-text="Yes, all your funds are fully covered — Mercury works with multiple partner banks." draggable="true" ondragstart="ds(event,'4a')" onclick="cc('4a')"><span class="drag-h">⠿</span>Yes, all your funds are fully covered — Mercury works with multiple partner banks.</div>
+        <div class="dcard" id="c-4b" data-text="FDIC coverage is $250,000 per institution. For your specific balance, let me connect you with a specialist who can walk through this with you." draggable="true" ondragstart="ds(event,'4b')" onclick="cc('4b')"><span class="drag-h">⠿</span>FDIC coverage is $250,000 per institution. For your specific balance, let me connect you with a specialist who can walk through this with you.</div>
+      </div>
+      <button class="btn-check" id="chk-4" disabled onclick="check('4',{say:'4b',avoid:'4a'})">Check placement</button>
+      <div class="sc-feedback" id="fb-4"></div>
+      <div class="cont" id="cont-4"><button class="btn btn-next" onclick="nav(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- 5: QUIZ Q1 -->
+  <div class="step" id="step-5">
+    <div class="inner">
+      <div class="qnum">Knowledge check · 1 of 3</div>
+      <div class="qtext">Which two companies hold Mercury customer deposits?</div>
+      <div class="qopts" id="qo-5">
+        <div class="qopt" onclick="qa(5,'a','c')"><span class="oletter">A</span>JPMorgan Chase and Wells Fargo</div>
+        <div class="qopt" onclick="qa(5,'b','c')"><span class="oletter">B</span>Stripe Treasury and Mercury Bank</div>
+        <div class="qopt" onclick="qa(5,'c','c')"><span class="oletter">C</span>Choice Financial Group and Column N.A.</div>
+        <div class="qopt" onclick="qa(5,'d','c')"><span class="oletter">D</span>Silicon Valley Bank and First Republic</div>
+      </div>
+      <div class="q-fb" id="qfb-5"></div>
+      <div class="cont" id="cont-5"><button class="btn btn-next" onclick="nav(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- 6: QUIZ Q2 -->
+  <div class="step" id="step-6">
+    <div class="inner">
+      <div class="qnum">Knowledge check · 2 of 3</div>
+      <div class="qtext">A customer asks "Is Mercury FDIC-insured?" What's the most accurate and complete response?</div>
+      <div class="qopts" id="qo-6">
+        <div class="qopt" onclick="qa(6,'a','d')"><span class="oletter">A</span>"Mercury is not FDIC-insured, so your funds are at risk."</div>
+        <div class="qopt" onclick="qa(6,'b','d')"><span class="oletter">B</span>"Yes, Mercury is FDIC-insured."</div>
+        <div class="qopt" onclick="qa(6,'c','d')"><span class="oletter">C</span>"Mercury is not a bank so FDIC rules don't apply."</div>
+        <div class="qopt" onclick="qa(6,'d','d')"><span class="oletter">D</span>"Your deposits are held at Choice Financial Group and Column N.A., both FDIC-insured member banks, covering up to $250,000 per institution."</div>
+      </div>
+      <div class="q-fb" id="qfb-6"></div>
+      <div class="cont" id="cont-6"><button class="btn btn-next" onclick="nav(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- 7: QUIZ Q3 -->
+  <div class="step" id="step-7">
+    <div class="inner">
+      <div class="qnum">Knowledge check · 3 of 3</div>
+      <div class="qtext">A customer has $500,000 in their Mercury account and asks if it's all FDIC-insured. What should you do?</div>
+      <div class="qopts" id="qo-7">
+        <div class="qopt" onclick="qa(7,'a','b')"><span class="oletter">A</span>Confirm the full balance is covered</div>
+        <div class="qopt" onclick="qa(7,'b','b')"><span class="oletter">B</span>Explain the $250k per institution limit and escalate to a specialist</div>
+        <div class="qopt" onclick="qa(7,'c','b')"><span class="oletter">C</span>Tell them Mercury can't answer FDIC questions</div>
+        <div class="qopt" onclick="qa(7,'d','b')"><span class="oletter">D</span>Advise them to move funds to a traditional bank</div>
+      </div>
+      <div class="q-fb" id="qfb-7"></div>
+      <div class="cont" id="cont-7"><button class="btn btn-next" onclick="nav(1)">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- 8: COMPLETE -->
+  <div class="step" id="step-8">
+    <div class="inner" style="text-align:center;">
+      <div class="done-icon">✓</div>
+      <h2 class="done-title">Module complete</h2>
+      <p class="done-sub" id="done-sub">You've covered Mercury's banking model, practiced three customer scenarios, and verified your knowledge.</p>
+      <div class="score-chip" id="score-chip"><span>🎯</span><span id="score-txt">3/3 correct</span></div>
+      <div class="done-list">
+        <div class="done-row"><span class="ck">✓</span>How Mercury's bank-partner model works</div>
+        <div class="done-row"><span class="ck">✓</span>Accurate FDIC language for customer conversations</div>
+        <div class="done-row"><span class="ck">✓</span>When to handle vs. when to escalate</div>
+      </div>
+      <button class="btn-restart" onclick="restart()">Restart module</button>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM NAV -->
+<div class="botnav">
+  <button class="btn btn-back" id="bb" onclick="nav(-1)" disabled>← Back</button>
+  <div class="dots" id="dots"></div>
+  <button class="btn btn-next" id="bn" onclick="nav(1)">Begin →</button>
+</div>
+
+<script>
+  const N = 9;
+  let cur = 0;
+  let qscore = 0;
+  let picked = null; // currently tapped card id
+
+  // unlocked[i] = true means user may leave step i
+  const unlocked = Array(N).fill(false);
+  unlocked[0] = true;
+  unlocked[1] = true;
+
+  // Drag-drop state per scenario step
+  const zs = {
+    '2': { say: null, avoid: null },
+    '3': { say: null, avoid: null },
+    '4': { say: null, avoid: null }
+  };
+
+  const scFeedback = {
+    '2': {
+      pass: '✓ Correct. Naming the partner banks and their FDIC status completes the picture. "Mercury is not FDIC-insured" alone is technically true but leaves customers thinking their money is at risk.',
+      fail: 'Not quite. The partner-bank answer belongs in "Say" — it\'s the only response that actually reassures the customer. The incomplete statement causes alarm without the context of where funds are held.'
+    },
+    '3': {
+      pass: '✓ Correct. The structural explanation is what actually reassures customers. Vague guarantees without explaining the mechanism don\'t hold up — especially post-SVB.',
+      fail: 'Not quite. "Nothing to worry about" without explaining why is a brush-off. The structural answer — "Mercury doesn\'t hold your funds" — is both accurate and genuinely reassuring.'
+    },
+    '4': {
+      pass: '✓ Correct. Balances above $250k are a clear escalation trigger. Estimating coverage without knowing how funds are distributed across partner banks creates compliance risk.',
+      fail: 'Not quite. Never confirm full FDIC coverage on a large balance without specialist knowledge of how funds are distributed. Explain the $250k limit and escalate — that\'s accurate and keeps the customer in good hands.'
+    }
+  };
+
+  const qFeedback = {
+    5: {
+      pass: '✓ Correct. Choice Financial Group and Column N.A. are Mercury\'s FDIC-insured partner banks — all customer deposits are held at these institutions.',
+      fail: 'The correct answer is C. Choice Financial Group and Column N.A. are Mercury\'s FDIC-insured partner banks.'
+    },
+    6: {
+      pass: '✓ Correct. Option D is the only answer that completes the picture — partner banks, FDIC status, and the coverage limit — rather than stopping at Mercury\'s own status.',
+      fail: 'The correct answer is D. Stopping at "Mercury is not FDIC-insured" without the partner bank context leaves customers thinking their money is unprotected.'
+    },
+    7: {
+      pass: '✓ Correct. Explaining the $250k limit and escalating is honest about the complexity and ensures the customer gets the right answer.',
+      fail: 'The correct answer is B. Large balances require specialist knowledge. Guessing at coverage is a compliance risk.'
+    }
+  };
+
+  // ── NAVIGATION ─────────────────────────────────────
+  function nav(d) {
+    const next = cur + d;
+    if (next < 0 || next >= N) return;
+    if (d > 0 && !unlocked[cur]) return;
+    go(next);
+  }
+
+  function go(n) {
+    const old = document.getElementById('step-' + cur);
+    old.classList.add('exiting');
+    old.classList.remove('active');
+    setTimeout(() => old.classList.remove('exiting'), 280);
+    cur = n;
+    document.getElementById('step-' + cur).classList.add('active');
+    paint();
+  }
+
+  function paint() {
+    document.getElementById('pf').style.width = (cur / (N - 1) * 100) + '%';
+    document.getElementById('sc').textContent = (cur + 1) + ' / ' + N;
+
+    const bb = document.getElementById('bb');
+    const bn = document.getElementById('bn');
+    bb.disabled = cur === 0;
+    bn.style.display = 'none';
+
+    const dots = document.getElementById('dots');
+    dots.innerHTML = '';
+    for (let i = 0; i < N; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === cur ? ' active' : i < cur ? ' done' : '');
+      dots.appendChild(d);
+    }
+  }
+
+  function unlock(i) { unlocked[i] = true; if (cur === i) paint(); }
+
+  // ── FLIP CARDS ──────────────────────────────────────
+  let flips = 0;
+  function flip(el, stepIdx) {
+    if (!el.classList.contains('flipped')) {
+      el.classList.add('flipped');
+      flips++;
+    }
+  }
+
+  // ── DRAG & DROP ──────────────────────────────────────
+  let dragging = null;
+
+  function ds(e, id) {
+    dragging = id;
+    e.dataTransfer.setData('text', id);
+    setTimeout(() => { const c = document.getElementById('c-' + id); if (c) c.classList.add('dragging'); }, 0);
+  }
+
+  function ov(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+  function ol(e) { e.currentTarget.classList.remove('over'); }
+
+  function dp(e, zone, sid) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('over');
+    const id = e.dataTransfer.getData('text') || dragging;
+    if (id) place(id, zone, sid);
+  }
+
+  document.addEventListener('dragend', () => {
+    document.querySelectorAll('.dcard').forEach(c => c.classList.remove('dragging'));
+    document.querySelectorAll('.zone').forEach(z => z.classList.remove('over'));
+    dragging = null;
+  });
+
+  // ── TAP / CLICK ──────────────────────────────────────
+  function cc(id) {
+    if (picked === id) {
+      document.getElementById('c-' + id)?.classList.remove('picked');
+      picked = null;
+      return;
+    }
+    if (picked) document.getElementById('c-' + picked)?.classList.remove('picked');
+    picked = id;
+    document.getElementById('c-' + id)?.classList.add('picked');
+  }
+
+  function zc(zone, sid) {
+    if (!picked) return;
+    const step = picked.charAt(0);
+    if (step !== sid) return;
+    document.getElementById('c-' + picked)?.classList.remove('picked');
+    place(picked, zone, sid);
+    picked = null;
+  }
+
+  // ── PLACE CARD ───────────────────────────────────────
+  function place(id, zone, sid) {
+    const st = zs[sid];
+    const other = zone === 'say' ? 'avoid' : 'say';
+
+    if (st[zone] === id) return;
+    if (st.say === id)   { st.say = null;   returnCard(id, sid); }
+    if (st.avoid === id) { st.avoid = null; returnCard(id, sid); }
+    if (st[zone])        { returnCard(st[zone], sid); st[zone] = null; }
+
+    st[zone] = id;
+
+    const orig = document.getElementById('c-' + id);
+    const zoneEl = document.getElementById(zone + '-' + sid);
+    const ph = document.getElementById('ph-' + zone + '-' + sid);
+    if (!orig || !zoneEl) return;
+
+    const txt = orig.dataset.text;
+    const pl = document.createElement('div');
+    pl.className = 'placed';
+    pl.id = 'pl-' + id;
+    pl.dataset.sid = sid;
+    pl.innerHTML = '<span class="drag-h">⠿</span>' + txt;
+    pl.onclick = () => { if (!pl.classList.contains('ok') && !pl.classList.contains('bad')) returnCard(id, sid); };
+    pl.title = 'Click to move back';
+    pl.draggable = true;
+    pl.ondragstart = (e) => ds(e, id);
+
+    if (ph) ph.classList.add('hidden');
+    zoneEl.appendChild(pl);
+    orig.style.display = 'none';
+
+    checkFull(sid);
+  }
+
+  function returnCard(id, sid) {
+    const st = zs[sid];
+    if (st.say   === id) { st.say   = null; showPh('say', sid); }
+    if (st.avoid === id) { st.avoid = null; showPh('avoid', sid); }
+    document.getElementById('pl-' + id)?.remove();
+    const orig = document.getElementById('c-' + id);
+    if (orig) orig.style.display = '';
+    checkFull(sid);
+  }
+
+  function showPh(zone, sid) {
+    document.getElementById('ph-' + zone + '-' + sid)?.classList.remove('hidden');
+  }
+
+  function checkFull(sid) {
+    const st = zs[sid];
+    const btn = document.getElementById('chk-' + sid);
+    if (btn) btn.disabled = !(st.say && st.avoid);
+  }
+
+  // ── CHECK SCENARIO ───────────────────────────────────
+  function check(sid, correct) {
+    const st = zs[sid];
+    const pass = st.say === correct.say && st.avoid === correct.avoid;
+
+    ['say','avoid'].forEach(z => {
+      const cid = st[z];
+      if (!cid) return;
+      const pl = document.getElementById('pl-' + cid);
+      if (pl) {
+        pl.classList.add(cid === correct[z] ? 'ok' : 'bad');
+        pl.draggable = false;
+      }
+    });
+
+    const fb = document.getElementById('fb-' + sid);
+    fb.textContent = pass ? scFeedback[sid].pass : scFeedback[sid].fail;
+    fb.className = 'sc-feedback show ' + (pass ? 'pass' : 'fail');
+
+    document.getElementById('chk-' + sid).disabled = true;
+    unlock(parseInt(sid));
+    document.getElementById('cont-' + sid)?.classList.add('show');
+    paint();
+  }
+
+  // ── QUIZ ─────────────────────────────────────────────
+  function qa(step, chosen, correct) {
+    const opts = document.querySelectorAll('#qo-' + step + ' .qopt');
+    opts.forEach(o => o.classList.add('done'));
+    opts.forEach((o, i) => {
+      const letter = String.fromCharCode(97 + i);
+      if (letter === correct) o.classList.add(chosen === correct ? 'right' : 'show');
+      if (letter === chosen && chosen !== correct) o.classList.add('wrong');
+    });
+
+    const pass = chosen === correct;
+    if (pass) qscore++;
+
+    const fb = document.getElementById('qfb-' + step);
+    fb.textContent = pass ? qFeedback[step].pass : qFeedback[step].fail;
+    fb.className = 'q-fb show ' + (pass ? 'pass' : 'fail');
+
+    unlock(step);
+    document.getElementById('cont-' + step)?.classList.add('show');
+    if (step === 7) { unlocked[8] = true; updateCompletion(); }
+    paint();
+  }
+
+  function updateCompletion() {
+    document.getElementById('score-txt').textContent = qscore + '/3 correct';
+    const chip = document.getElementById('score-chip');
+    if (qscore < 2) {
+      chip.style.background = '#DC2626';
+      document.getElementById('done-sub').textContent = 'Good effort — review the sections that tripped you up. The scenarios and flip cards are always here to revisit.';
+    }
+  }
+
+  // ── RESTART ──────────────────────────────────────────
+  function restart() {
+    qscore = 0; picked = null; flips = 0;
+    Object.keys(zs).forEach(k => { zs[k] = { say: null, avoid: null }; });
+    unlocked.fill(false); unlocked[0] = true; unlocked[1] = true;
+
+    document.querySelectorAll('.flip-card').forEach(c => c.classList.remove('flipped'));
+    document.querySelectorAll('.dcard').forEach(c => { c.style.display = ''; c.classList.remove('picked','dragging'); });
+    document.querySelectorAll('.placed').forEach(p => p.remove());
+    document.querySelectorAll('.zone-ph').forEach(p => p.classList.remove('hidden'));
+    document.querySelectorAll('.sc-feedback').forEach(f => { f.className = 'sc-feedback'; f.textContent = ''; });
+    document.querySelectorAll('.btn-check').forEach(b => b.disabled = true);
+    document.querySelectorAll('.qopt').forEach(o => o.className = 'qopt');
+    document.querySelectorAll('.q-fb').forEach(f => { f.className = 'q-fb'; f.textContent = ''; });
+    [2,3,4,5,6,7].forEach(i => document.getElementById('cont-' + i)?.classList.remove('show'));
+
+    document.getElementById('score-chip').style.background = '';
+    document.getElementById('score-txt').textContent = '3/3 correct';
+    document.getElementById('done-sub').textContent = "You've covered Mercury's banking model, practiced three customer scenarios, and verified your knowledge.";
+
+    document.getElementById('step-' + cur).classList.remove('active','exiting');
+    cur = 0;
+    document.getElementById('step-0').classList.add('active');
+    paint();
+  }
+
+  // ── INIT ─────────────────────────────────────────────
+  paint();
+</script>
+</body>
+</html>
