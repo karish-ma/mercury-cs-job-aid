@@ -20,4 +20,4 @@ The module walks CS reps through:
 
 ## Built by
 
-Karishma Mhapadi — [karishma.mhapadi@gmail.com](mailto:karishma.mhapadi@gmail.com) | [LinkedIn](https://www.linkedin.com/in/karishmamhapadi/)
+Karishma Mhapadi — [LinkedIn](https://www.linkedin.com/in/karishmamhapadi/)
